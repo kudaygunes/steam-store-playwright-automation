@@ -1,0 +1,19 @@
+{
+  "name": "steam-store-playwright",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "clean:reports": "rm -rf test-results playwright-report/data && mkdir -p test-results playwright-report/data",
+    "test": "npm run clean:reports && npx playwright test",
+    "test:ui": "npm run clean:reports && npx playwright test --ui"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^25.0.8"
+  }
+}
