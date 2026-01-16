@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { SteamHomePage } from "./pages/steamHomepage.ts";
-import { SteamHelpers } from "./helpers/steamHelpers.ts";
-import { SteamSearchResultPage } from "./pages/steamSearchResultPage.ts";
+import { SteamHomePage } from "../pages/steamHomepage.ts";
+import { SteamHelpers } from "../helpers/steamHelpers.ts";
+import { SteamSearchResultPage } from "../pages/steamSearchResultPage.ts";
 
 let homePage: SteamHomePage;
 let steamHelper: SteamHelpers;
@@ -49,7 +49,7 @@ test("Navigate to sign-in page", async ({ page }) => {
   await expect(page).toHaveURL(/.*store\.steampowered\.com\/login\/?.*/);
 });
 
-test("Changing language and assert language is really changed", async ({
+test.only("Changing language and assert language is really changed", async ({
   page,
 }) => {
   // first, assertion to language dropdown is visible
