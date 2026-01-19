@@ -32,6 +32,11 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
+    screenshot: "only-on-failure", // take screenshot only for failed tests
+    video: "retain-on-failure", // record video for every test but retain only for failed tests
+    /* if you want to record video with specific size, use this and change as you like: 
+    video: {mode: "retain-on-failure", size: {width: 1280, height: 720}}
+    */
   },
 
   /* Configure projects for major browsers */
@@ -42,11 +47,10 @@ export default defineConfig({
     },
 
     {
-      name: "regression-multiple-browsers",
+      name: "regression",
       use: {
         ...devices["Desktop Firefox"],
         ...devices["Desktop Chrome"],
-        ...devices["Desktop Safari"],
       },
     },
 
@@ -75,6 +79,12 @@ export default defineConfig({
     //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     // },
   ],
+  /* use this code block and change url to start a local dev server before running the tests. In our situation store.steampowered.com is already live so we don't need it
+    webServer: {
+      command: "npm run start",
+      url: "https://store.steampowered.com",
+    }
+  */
 
   /* Run your local dev server before starting the tests */
   // webServer: {

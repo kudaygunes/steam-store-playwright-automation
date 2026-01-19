@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  playwright-test:
+    image: steam-store-playwright
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    command: npx playwright test --project regression
+    volumes:
+      - ./playwright-report/:/steam_app/playwright-report
+      - ./playwright-report/:/steam_app/test-results

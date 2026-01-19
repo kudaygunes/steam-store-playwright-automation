@@ -23,7 +23,7 @@ test("Display Top Sellers section", async ({ page }) => {
   // second, we verify that the Top Sellers section is active
   await expect(homePage.topSellersSection).toHaveAttribute(
     "aria-selected",
-    "true"
+    "true",
   );
 });
 
@@ -34,7 +34,7 @@ test("Display Special Offers section", async ({ page }) => {
   // second, we verify that the Specials section is active
   await expect(homePage.specialOffersSection).toHaveAttribute(
     "aria-selected",
-    "true"
+    "true",
   );
 });
 
