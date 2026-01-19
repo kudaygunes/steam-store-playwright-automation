@@ -15,6 +15,9 @@ A comprehensive end-to-end (E2E) testing automation project for the **Steam Stor
 - [Test Coverage](#test-coverage)
 - [Configuration Details](#configuration-details)
 - [Technologies & Plugins](#technologies--plugins)
+- [Docker Integration](#docker-integration)
+- [CI/CD Integration](#cicd-integration)
+- [Visual Testing with Argos CI](#visual-testing-with-argos-ci)
 - [Project Architecture](#project-architecture)
 
 ---
@@ -75,7 +78,12 @@ steam-store-playwright/
 │   │   └── steamHelpers.ts               # Reusable test helper functions
 │   └── testing-types/
 │       └── steamSmokeTests.spec.ts       # Quick smoke tests
+├── .github/
+│   └── workflows/
+│       └── playwright.yaml               # GitHub Actions CI/CD workflow
 ├── playwright.config.ts                  # Playwright configuration
+├── Dockerfile                            # Docker image configuration
+├── docker-compose.yaml                   # Docker Compose setup
 ├── package.json                          # Project dependencies and scripts
 ├── playwright-report/                    # Generated HTML test reports
 ├── test-results/                         # Raw test result data
@@ -84,14 +92,15 @@ steam-store-playwright/
 
 ### Key Folders Explained
 
-| Folder                 | Purpose                                                                    |
-| ---------------------- | -------------------------------------------------------------------------- |
-| `tests/`               | Contains all test files (.spec.ts files)                                   |
-| `tests/pages/`         | **Page Object Model** - Classes representing web pages with their elements |
-| `tests/helpers/`       | **Helper utilities** - Reusable functions to avoid code repetition         |
-| `tests/testing-types/` | **Smoke tests** - Fast, critical path tests                                |
-| `playwright-report/`   | Generated HTML reports after test runs                                     |
-| `test-results/`        | Test execution logs and metadata                                           |
+| Folder | Purpose |
+| -.github/workflows/`  | GitHub Actions CI/CD workflow configurations                               |
+|`--------------------- | -------------------------------------------------------------------------- |
+| `tests/` | Contains all test files (.spec.ts files) |
+| `tests/pages/` | **Page Object Model** - Classes representing web pages with their elements |
+| `tests/helpers/` | **Helper utilities** - Reusable functions to avoid code repetition |
+| `tests/testing-types/` | **Smoke tests** - Fast, critical path tests |
+| `playwright-report/` | Generated HTML reports after test runs |
+| `test-results/` | Test execution logs and metadata |
 
 ---
 
@@ -102,12 +111,10 @@ Before setting up this project, ensure you have:
 ### Required Software
 
 1. **Node.js** (v14 or higher)
-
    - Download from: https://nodejs.org/
    - Verify installation: `node --version`
 
 2. **npm** (Node Package Manager - comes with Node.js)
-
    - Verify installation: `npm --version`
 
 3. **Git** (optional, for cloning the repository)
@@ -323,18 +330,71 @@ This opens an interactive HTML report showing:
 
 ### Playwright Configuration (`playwright.config.ts`)
 
-Key configuration settings:
+The configuration file includes advanced settings for test execution, reporting, and visual testing:
 
 ```typescript
 {
   testDir: "./tests",              // Where to find test files
   fullyParallel: true,             // Run multiple tests simultaneously
-  retries: 0,                      // Retries (2 on CI, 0 locally)
-  reporter: "html",               // Generate HTML reports
-  trace: "on-first-retry",        // Record traces for failed tests
-  projects: [...]                 // Browser configurations
+  forbidOnly: !!process.env.CI,    // Fail on CI if test.only is present
+  retries: process.env.CI ? 2 : 0, // Retry failed tests (2 times on CI)
+  workers: process.env.CI ? 1 : undefined, // Single worker on CI
+  reporter: [
+    process.env.CI ? ["dot"] : ["list"],
+    ["@argos-ci/playwright/reporter", {uploadToArgos: !!process.env.CI}],
+    ["html"]
+  ],
+  use: {
+    trace: "on-first-retry",           // Record traces for failed tests
+    screenshot: "only-on-failure",     // Screenshots for failed tests only
+    video: "retain-on-failure"         // Video recording for failed tests
+  }
 }
 ```
+
+### Key Configuration Options
+
+| Setting           | Value                         | Purpose                                  |
+| ----------------- | ----------------------------- | ---------------------------------------- |
+| **testDir**       | `./tests`                     | Location of test files                   |
+| **fullyParallel** | `true`                        | Enable parallel test execution           |
+| **retries**       | `2` (CI), `0` (local)         | Retry failed tests on CI environments    |
+| **workers**       | `1` (CI), `undefined` (local) | Number of parallel test workers          |
+| **trace**         | `on-first-retry`              | Record execution trace for first retry   |
+| **screenshot**    | `only-on-failure`             | Capture screenshots only when tests fail |
+| **video**         | `retain-on-failure`           | Record videos only for failed tests      |
+| **reporters**     | HTML, Argos CI, Terminal      | Multiple report formats                  |
+
+### Reporter Configuration
+
+**Three reporters are configured:**
+
+1. **Terminal Reporter** - Displays test results in the terminal
+   - `dot` format on CI (minimal output)
+   - `list` format locally (detailed output)
+
+2. **Argos CI Reporter** - Captures and uploads visual snapshots
+   - Enabled on CI environments only
+   - Compares screenshots for visual regression detection
+
+3. **HTML Reporter** - Generates interactive HTML test report
+   - Includes test results, timings, and artifacts
+   - Viewable via `npx playwright show-report`
+
+### Environment Variables
+
+The configuration uses CI environment detection:
+
+```typescript
+process.env.CI; // Set to true in GitHub Actions, GitLab CI, etc.
+```
+
+**CI Detection:**
+
+- ✅ Automatically detected in GitHub Actions
+- ✅ Automatically detected in GitLab CI
+- ✅ Automatically detected in most CI/CD platforms
+- ✅ Can be manually set: `export CI=true` (on Unix) or `set CI=true` (on Windows)
 
 ### Browser Configurations
 
@@ -346,9 +406,34 @@ Tests run on multiple browsers for maximum compatibility:
 | **Firefox** | Regression tests | Alternative browser testing |
 | **Safari**  | Regression tests | Webkit/Safari compatibility |
 
----
+**Configuration:**
 
-## 🛠️ Technologies & Plugins
+```typescript
+projects: [
+  {
+    name: "smoke-chrome",
+    use: { ...devices["Desktop Chrome"] },
+  },
+  {
+    name: "regression",
+    use: {
+      ...devices["Desktop Firefox"],
+      ...devices["Desktop Chrome"],
+    },
+  },
+  {
+    name: "webkit",
+    use: { ...devices["Desktop Safari"] },
+  },
+];
+```
+
+| ---                      | Version | Purpose                                 |
+| ------------------------ | ------- | --------------------------------------- |
+| **@playwright/test**     | ^1.57.0 | E2E testing framework                   |
+| **@argos-ci/playwright** | ^6.3.10 | Visual regression testing and reporting |
+| **Node.js**              | 14+     | JavaScript runtime                      |
+| **Docker**               | Latest  | Containerization                        |
 
 ### Core Dependencies
 
@@ -368,14 +453,26 @@ Tests run on multiple browsers for maximum compatibility:
 
 ### Key Playwright Features Used in This Project
 
-| Feature                | Usage                                             |
-| ---------------------- | ------------------------------------------------- |
-| **Page Navigation**    | Navigate to Steam Store website                   |
-| **Locators**           | Find elements by role, text, CSS selectors        |
-| **Interactions**       | Click, fill, type, hover, press keys              |
-| **Assertions**         | Verify element visibility, text, attributes, URLs |
-| **Screenshots/Videos** | Capture failures for debugging                    |
-| **Trace Viewer**       | Replay test execution step-by-step                |
+| Feature               | Usage                                      |
+| --------------------- | ------------------------------------------ |
+| **Page Navigation**   | Navigate to Steam Store website            |
+| **Locators**          | Find elements by role, text, CSS selectors |
+| **Interactions**      | Click, fill, type, hover, press keys       |
+| **Visual Regression** | Compare screenshots with Argos CI          |
+
+### Argos CI Integration
+
+**Argos CI** is integrated for visual regression testing:
+
+- 📸 Automatically captures and compares visual snapshots
+- 🔍 Detects unintended visual changes in the UI
+- 🚀 Runs on CI/CD pipelines to prevent visual regressions
+- 📊 Provides detailed visual comparison reports
+
+**Configuration:** Set `uploadToArgos: true` in `playwright.config.ts` to upload results during CI runs.
+| **Assertions** | Verify element visibility, text, attributes, URLs |
+| **Screenshots/Videos** | Capture failures for debugging |
+| **Trace Viewer** | Replay test execution step-by-step |
 
 ### Testing Patterns Used
 
@@ -416,6 +513,234 @@ async searchGame(gameName: string) {
 ```
 
 ---
+
+## 🐳 Docker Integration
+
+### Overview
+
+Docker integration allows you to run tests in a containerized environment, ensuring consistent test execution across different machines and CI/CD platforms.
+
+### What is Docker?
+
+**Docker** is a containerization platform that:
+
+- 📦 Packages your application and all dependencies into a container
+- 🔄 Ensures consistent behavior across different environments
+- ⚡ Eliminates "works on my machine" issues
+- 🚀 Simplifies CI/CD deployment
+
+### Docker Files
+
+| File                    | Purpose                                                             |
+| ----------------------- | ------------------------------------------------------------------- |
+| **Dockerfile**          | Defines the container image build process                           |
+| **docker-compose.yaml** | Orchestrates running the test container with proper volume mappings |
+
+### Dockerfile Configuration
+
+The Dockerfile uses the official Playwright image (`mcr.microsoft.com/playwright:v1.57.0-noble`) which includes:
+
+- All system dependencies required by Playwright
+- Browser drivers (Chrome, Firefox, Safari)
+- Node.js and npm
+
+**Key steps:**
+
+```dockerfile
+FROM mcr.microsoft.com/playwright:v1.57.0-noble    # Base image
+WORKDIR /steam_app                                 # Set working directory
+COPY . /steam_app                                  # Copy project files
+RUN npm install --force                            # Install dependencies
+RUN npx playwright install                         # Install browsers
+```
+
+### Docker Compose Configuration
+
+Simplifies running tests in a Docker container:
+
+```yaml
+version: "3.8"
+services:
+  playwright-test:
+    image: steam-store-playwright
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    command: npx playwright test --project regression
+    volumes:
+      - ./playwright-report/:/steam_app/playwright-report
+      - ./test-results:/steam_app/test-results
+```
+
+### Running Tests with Docker
+
+#### Build the Docker Image
+
+```bash
+docker build -t steam-store-playwright .
+```
+
+#### Run Tests in Docker Container
+
+```bash
+docker-compose up
+```
+
+Or build and run in one command:
+
+```bash
+docker-compose up --build
+```
+
+#### Run Specific Project
+
+```bash
+docker-compose run playwright-test npx playwright test --project smoke-chrome
+```
+
+### Benefits of Docker Integration
+
+- ✅ **Consistency**: Same environment across local and CI/CD
+- ✅ **Isolation**: Tests don't interfere with system configuration
+- ✅ **Portability**: Works on Windows, Mac, and Linux
+- ✅ **CI/CD Ready**: Seamless integration with GitHub Actions, GitLab CI, etc.
+
+---
+
+## 🚀 CI/CD Integration
+
+### GitHub Actions Workflow
+
+Automated test execution on GitHub using GitHub Actions. The workflow triggers on push and pull requests to `main` or `master` branches.
+
+### Workflow File
+
+**Location:** `.github/workflows/playwright.yaml`
+
+### Workflow Configuration
+
+The GitHub Actions workflow performs the following steps:
+
+1. **Checkout Code** - Fetches the latest repository code
+2. **Setup Node.js** - Installs the latest LTS version of Node.js
+3. **Install Dependencies** - Runs `npm ci --force` for clean dependency installation
+4. **Install Playwright Browsers** - Sets up required browser binaries
+5. **Run Tests** - Executes the smoke-chrome test project
+6. **Upload Artifacts** - Archives test reports for 30 days
+
+### Key Workflow Features
+
+| Feature                | Configuration                                |
+| ---------------------- | -------------------------------------------- |
+| **Trigger Events**     | `push` and `pull_request` on `main`/`master` |
+| **Timeout**            | 60 minutes per job                           |
+| **OS**                 | Ubuntu Latest                                |
+| **Node Version**       | Latest LTS                                   |
+| **Test Project**       | `smoke-chrome` (quick validation tests)      |
+| **Artifact Retention** | 30 days                                      |
+
+### Workflow Execution
+
+The workflow automatically:
+
+- ✅ Runs on every push to main/master branches
+- ✅ Runs on every pull request to main/master branches
+- ✅ Generates test reports as artifacts
+- ✅ Fails the job if tests don't pass
+- ✅ Prevents merging PRs with failing tests (when branch protection is enabled)
+
+### Customizing the Workflow
+
+To run different test projects, modify the `Run Playwright tests` step in `.github/workflows/playwright.yaml`:
+
+```yaml
+- name: Run Playwright tests
+  run: npx playwright test --project regression # Change to regression for full tests
+```
+
+Or run multiple test projects:
+
+```yaml
+- name: Run Playwright tests
+  run: |
+    npx playwright test --project smoke-chrome
+    npx playwright test --project regression
+```
+
+---
+
+## 📊 Visual Testing with Argos CI
+
+### Overview
+
+**Argos CI** is integrated for automated visual regression testing, detecting unintended UI changes across test runs.
+
+### What is Argos CI?
+
+Argos CI is a visual testing and regression platform that:
+
+- 📸 **Captures** visual snapshots automatically during test execution
+- 🔍 **Compares** new screenshots against baseline images
+- ⚠️ **Detects** visual regressions before they reach production
+- 📈 **Reports** differences with detailed visual analysis
+- ✅ **Approves** baselines through an intuitive UI
+
+### Argos Integration in Playwright Config
+
+The Playwright configuration includes Argos CI reporter:
+
+```typescript
+reporter: [
+  process.env.CI ? ["dot"] : ["list"],
+  [
+    "@argos-ci/playwright/reporter",
+    {
+      uploadToArgos: !!process.env.CI,  // Upload only on CI
+    },
+  ],
+  ["html"],
+],
+```
+
+### How Argos Works
+
+1. **Capture Phase**: Tests run and screenshots are captured
+2. **Upload Phase**: On CI, screenshots are uploaded to Argos
+3. **Compare Phase**: Argos compares new images against approved baselines
+4. **Report Phase**: Visual differences are reported in the Argos dashboard
+5. **Review Phase**: Developers review changes and approve/reject
+
+### Using Argos
+
+#### First Run (Create Baselines)
+
+```bash
+npm test
+# Argos will create baseline images on CI (if CI env var is set)
+```
+
+#### Subsequent Runs
+
+```bash
+npm test
+# Argos compares new screenshots with baselines
+# Reports any visual differences
+```
+
+### Viewing Argos Results
+
+- 🌐 Visit your Argos CI project dashboard
+- 📊 View side-by-side comparisons of visual changes
+- ✅ Approve new baselines or reject changes
+- 📝 Add comments and collaborate on visual changes
+
+### Benefits of Visual Testing
+
+- ✅ **Early Detection**: Catch UI bugs before QA
+- ✅ **Regression Prevention**: Prevent accidental style changes
+- ✅ **Cross-Browser Validation**: Ensure consistent appearance across browsers
+- ✅ **Performance Monitoring**: Track screenshot size and load times
+- ✅ **Documentation**: Visual snapshots serve as design documentation
 
 ## 🏗️ Project Architecture
 

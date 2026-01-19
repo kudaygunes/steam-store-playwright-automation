@@ -16,8 +16,10 @@ jobs:
       - name: Install dependencies
         run: npm ci --force
       - name: Install Playwright Browsers
+        # to prevent errors we use --force
         run: npx playwright install --with-deps --force
       - name: Run Playwright tests
+        # change '--project smoke-chrome' to the desired command or add more commands as needed
         run: npx playwright test --project smoke-chrome
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { SteamHomePage } from "./pages/steamHomepage.ts";
 import { SteamHelpers } from "./helpers/steamHelpers.ts";
 import { SteamSearchResultPage } from "./pages/steamSearchResultPage.ts";
+import { argosScreenshot } from "@argos-ci/playwright";
 
 let homePage: SteamHomePage;
 let steamHelper: SteamHelpers;
@@ -65,4 +66,5 @@ test("Changing language and assert language is really changed", async ({
   await expect(homePage.storeSubmenu).not.toBeHidden();
   // after above method, we can safely assert the submenu is visible
   await expect(homePage.storeSubmenu).toBeVisible();
+  // this is used in argos ci for visual test comparison await argosScreenshot(page, "steam homepage");
 });

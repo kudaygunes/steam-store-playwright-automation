@@ -3,6 +3,7 @@ import { SteamHomePage } from "./pages/steamHomepage.ts";
 import { SteamHelpers } from "./helpers/steamHelpers.ts";
 import { SteamSearchResultPage } from "./pages/steamSearchResultPage.ts";
 import { SteamGameDetailPage } from "./pages/steamGameDetailPage.ts";
+import { argosScreenshot } from "@argos-ci/playwright";
 
 let homePage: SteamHomePage;
 let steamHelper: SteamHelpers;
