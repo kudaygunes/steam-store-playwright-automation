@@ -4,9 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "clean:reports": "rm -rf test-results playwright-report/data && mkdir -p test-results playwright-report/data",
+    "clean:reports": "powershell -Command \"'test-results','playwright-report','allure-results','allure-report' | ? { Test-Path $_ } | % { rm \"$($_)\\*\" -r -fo -ErrorAction SilentlyContinue }; mkdir 'test-results','playwright-report\\data','allure-results','allure-report' -fo\"",
     "test": "npm run clean:reports && npx playwright test",
-    "test:ui": "npm run clean:reports && npx playwright test --ui"
+    "test:ui": "npm run allure:generate && npm run clean:reports && npm run allure:clear && npx playwright test --ui",
+    "test:allure": "playwright test && allure generate allure-results --clean && allure open",
+    "allure:generate": "allure generate allure-results --clean",
+    "allure:open": "allure open",
+    "allure:serve": "allure serve allure-results",
+    "allure:clear": "powershell Remove-Item -Recurse -Force allure-results"
   },
   "keywords": [],
   "author": "",
@@ -14,7 +19,9 @@
   "type": "commonjs",
   "devDependencies": {
     "@argos-ci/playwright": "^6.3.10",
-    "@playwright/test": "^1.57.0",
-    "@types/node": "^25.0.8"
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^25.0.8",
+    "allure-commandline": "^2.36.0",
+    "allure-playwright": "^3.4.5"
   }
 }

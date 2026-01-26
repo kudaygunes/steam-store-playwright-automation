@@ -33,6 +33,14 @@ export default defineConfig({
         uploadToArgos: !!process.env.CI,
       },
     ],
+    [
+      "allure-playwright",
+      {
+        detail: true,
+        suiteTitle: false,
+        attachments: true,
+      },
+    ],
     ["html"],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
